@@ -1,0 +1,32 @@
+{
+  "timestamp": "2025-11-05T12:59:24.751651",
+  "total_tests": 27,
+  "passed": 5,
+  "failed": 0,
+  "errors": [
+    "test_csv_has_500_hz_data (test_digitize.TestDigitization)",
+    "test_csv_has_correct_format (test_digitize.TestDigitization)",
+    "test_csv_values_are_numeric (test_digitize.TestDigitization)",
+    "test_ecg_to_csv_creates_file (test_digitize.TestDigitization)",
+    "test_signal_amplitude_realistic (test_digitize.TestSignalProperties)",
+    "test_signal_has_cardiac_rhythm (test_digitize.TestSignalProperties)",
+    "test_compute_metrics_has_required_fields (test_analyse.TestAnalysis)",
+    "test_compute_metrics_returns_dict (test_analyse.TestAnalysis)",
+    "test_heart_rate_is_valid (test_analyse.TestAnalysis)",
+    "test_lf_hf_ratio_positive (test_analyse.TestAnalysis)",
+    "test_pnn50_valid_range (test_analyse.TestAnalysis)",
+    "test_rmssd_is_positive (test_analyse.TestAnalysis)",
+    "test_rmssd_less_than_sdnn (test_analyse.TestAnalysis)",
+    "test_sdnn_is_positive (test_analyse.TestAnalysis)",
+    "test_metrics_stable_across_runs (test_analyse.TestMetricsConsistency)",
+    "test_full_pipeline_succeeds (test_integration.TestEndToEnd)",
+    "test_metrics_precision (test_integration.TestEndToEnd)",
+    "test_output_is_json_serializable (test_integration.TestEndToEnd)",
+    "test_reproducibility_with_same_data (test_integration.TestEndToEnd)",
+    "test_all_expected_metrics_present (test_integration.TestDataValidation)",
+    "test_feature_ranges_for_ml (test_integration.TestDataValidation)",
+    "test_no_nan_or_inf_in_metrics (test_integration.TestDataValidation)"
+  ],
+  "success_rate": 18.51851851851852,
+  "failures": []
+}

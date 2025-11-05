@@ -1,0 +1,10 @@
+{
+  "extraction": true,
+  "csv_created": true,
+  "metrics_computed": true,
+  "no_nan_inf": true,
+  "all_features": true,
+  "ranges_valid": true,
+  "json_compatible": true,
+  "final_status": "PASSED"
+}

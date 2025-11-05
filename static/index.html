@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ECG PDF Analyzer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+        
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        
+        .upload-area {
+            border: 2px dashed #667eea;
+            border-radius: 8px;
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: #f8f9ff;
+        }
+        
+        .upload-area:hover {
+            border-color: #764ba2;
+            background: #f0f2ff;
+        }
+        
+        .upload-area.dragging {
+            border-color: #764ba2;
+            background: #e8eaff;
+        }
+        
+        input[type="file"] {
+            display: none;
+        }
+        
+        .upload-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+        }
+        
+        .upload-text {
+            color: #667eea;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+        
+        .upload-hint {
+            color: #999;
+            font-size: 13px;
+        }
+        
+        #loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        #output {
+            display: none;
+        }
+        
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .metric-card {
+            background: #f8f9ff;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 3px solid #667eea;
+        }
+        
+        .metric-label {
+            color: #666;
+            font-size: 12px;
+            text-transform: uppercase;
+            margin-bottom: 5px;
+        }
+        
+        .metric-value {
+            color: #333;
+            font-size: 20px;
+            font-weight: 600;
+        }
+        
+        .error {
+            background: #fee;
+            border-left-color: #f44;
+            color: #c00;
+        }
+        
+        pre {
+            background: #f5f5f5;
+            padding: 15px;
+            border-radius: 6px;
+            overflow-x: auto;
+            font-size: 12px;
+            line-height: 1.5;
+        }
+        
+        .btn-reset {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-top: 15px;
+            transition: background 0.3s;
+        }
+        
+        .btn-reset:hover {
+            background: #764ba2;
+        }
+        
+        .feature-selector {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f0f2ff;
+            border-radius: 8px;
+            border-left: 3px solid #667eea;
+        }
+        
+        .feature-selector label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+        }
+        
+        .feature-selector select {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            background: white;
+            cursor: pointer;
+        }
+        
+        .feature-selector select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <h1>📊 ECG PDF Analyzer</h1>
+            <p class="subtitle">Upload ECG PDFs for automated digitization and clinical analysis</p>
+            
+            <div class="feature-selector">
+                <label for="featureSet">📊 Display Features:</label>
+                <select id="featureSet">
+                    <option value="basic">🎯 Basic (5 most important)</option>
+                    <option value="standard" selected>⭐ Standard (7 features - Recommended)</option>
+                    <option value="complete">📈 Complete (all 10 metrics)</option>
+                    <option value="all">🔬 Debug (show everything)</option>
+                </select>
+            </div>
+            
+            <div id="uploadSection">
+                <div class="upload-area" id="uploadArea">
+                    <div class="upload-icon">📄</div>
+                    <div class="upload-text">Click to upload or drag and drop</div>
+                    <div class="upload-hint">PDF files with ECG waveforms (multiple files supported)</div>
+                    <input type="file" id="file" accept=".pdf" multiple>
+                </div>
+            </div>
+            
+            <div id="loading">
+                <div class="spinner"></div>
+                <div>Processing ECG data...</div>
+            </div>
+            
+            <div id="output">
+                <h2 style="margin-bottom: 15px; color: #333;">Analysis Results</h2>
+                <div id="metrics"></div>
+                <div style="display: flex; gap: 10px; margin-top: 15px;">
+                    <button class="btn-reset" onclick="resetUpload()">Analyze Another ECG</button>
+                    <button class="btn-reset" style="background: #48bb78;" onclick="exportToExcel()">📊 Export to Excel</button>
+                    <button class="btn-reset" style="background: #ed8936;" onclick="viewDatabase()">💾 View Database</button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card" style="font-size: 13px; color: #666;">
+            <strong>Powered by:</strong> PyMuPDF • ECGtizer • HeartPy
+            <br><br>
+            <strong>Features:</strong> Vector & raster ECG extraction • 500 Hz digitization • Comprehensive HRV metrics
+        </div>
+    </div>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>

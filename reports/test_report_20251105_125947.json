@@ -1,0 +1,11 @@
+{
+  "timestamp": "2025-11-05T12:59:47.614191",
+  "total_tests": 27,
+  "passed": 26,
+  "failed": 1,
+  "errors": [],
+  "success_rate": 96.29629629629629,
+  "failures": [
+    "test_rmssd_less_than_sdnn (test_analyse.TestAnalysis)"
+  ]
+}
