@@ -5,5 +5,9 @@ scipy
 pandas
 numpy
 Pillow
+scikit-learn>=1.0.0
+psycopg2-binary>=2.9.0
+openpyxl>=3.0.0
+python-dotenv
 # ecgtizer==0.9.*  # Install from GitHub: pip install git+https://github.com/alphanumericslab/ecgtizer.git
 # Note: NeuroKit2 removed due to Python 3.10+ requirement

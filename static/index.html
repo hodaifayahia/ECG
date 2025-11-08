@@ -240,13 +240,131 @@
             </div>
         </div>
         
+        <!-- Clinical Report Upload Section -->
+        <div class="card">
+            <h1>🏥 Clinical Report Analyzer</h1>
+            <p class="subtitle">Upload French coronarography reports for medical data extraction</p>
+            
+            <div id="clinicalUploadSection">
+                <div class="upload-area" id="clinicalUploadArea">
+                    <div class="upload-icon">📋</div>
+                    <div class="upload-text">Upload Coronarography Report</div>
+                    <div class="upload-hint">French medical PDF reports (coronarography findings)</div>
+                    <input type="file" id="clinicalFile" accept=".pdf">
+                </div>
+            </div>
+            
+            <div id="clinicalLoading" style="display: none;">
+                <div class="spinner"></div>
+                <div>Extracting clinical data...</div>
+            </div>
+            
+            <div id="clinicalOutput" style="display: none;">
+                <h2 style="margin-bottom: 15px; color: #333;">Extracted Clinical Data</h2>
+                <div id="clinicalMetrics"></div>
+                <button class="btn-reset" onclick="resetClinicalUpload()">Analyze Another Report</button>
+            </div>
+        </div>
+        
         <div class="card" style="font-size: 13px; color: #666;">
-            <strong>Powered by:</strong> PyMuPDF • ECGtizer • HeartPy
+            <strong>Powered by:</strong> PyMuPDF • ECGtizer • HeartPy • Scikit-learn
             <br><br>
-            <strong>Features:</strong> Vector & raster ECG extraction • 500 Hz digitization • Comprehensive HRV metrics
+            <strong>Features:</strong> Vector & raster ECG extraction • 500 Hz digitization • Comprehensive HRV metrics • French medical NLP • ML-ready data export
         </div>
     </div>
 
     <script src="/static/app.js"></script>
+    <script>
+        // Clinical Report Upload Handler
+        const clinicalUploadArea = document.getElementById('clinicalUploadArea');
+        const clinicalFileInput = document.getElementById('clinicalFile');
+        const clinicalLoading = document.getElementById('clinicalLoading');
+        const clinicalOutput = document.getElementById('clinicalOutput');
+        const clinicalUploadSection = document.getElementById('clinicalUploadSection');
+        
+        clinicalUploadArea.addEventListener('click', () => clinicalFileInput.click());
+        
+        clinicalFileInput.addEventListener('change', async () => {
+            const file = clinicalFileInput.files[0];
+            if (!file) return;
+            
+            clinicalUploadSection.style.display = 'none';
+            clinicalLoading.style.display = 'block';
+            clinicalOutput.style.display = 'none';
+            
+            const formData = new FormData();
+            formData.append('file', file);
+            
+            try {
+                const response = await fetch('/api/upload_clinical_report', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (data.error) {
+                    alert('Error: ' + data.error);
+                    resetClinicalUpload();
+                    return;
+                }
+                
+                displayClinicalResults(data);
+                
+            } catch (error) {
+                alert('Upload failed: ' + error.message);
+                resetClinicalUpload();
+            }
+        });
+        
+        function displayClinicalResults(data) {
+            clinicalLoading.style.display = 'none';
+            clinicalOutput.style.display = 'block';
+            
+            const extracted = data.extracted_data;
+            let html = '<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 15px;">';
+            
+            // Demographics
+            html += '<div class="metric-card">';
+            html += '<div class="metric-label">Patient Demographics</div>';
+            html += `<div class="metric-value">Age: ${extracted.age || 'N/A'}</div>`;
+            html += `<div class="metric-value">Gender: ${extracted.gender || 'N/A'}</div>`;
+            html += '</div>';
+            
+            // Clinical Findings
+            html += '<div class="metric-card">';
+            html += '<div class="metric-label">Clinical Findings</div>';
+            html += `<div class="metric-value">Stenosis Count: ${extracted.stenosis_count || 0}</div>`;
+            html += `<div class="metric-value">Occlusion Count: ${extracted.occlusion_count || 0}</div>`;
+            html += `<div class="metric-value">TIMI Flow: ${extracted.timi_flow || 'N/A'}</div>`;
+            html += '</div>';
+            
+            // Severity
+            html += '<div class="metric-card">';
+            html += '<div class="metric-label">Severity Assessment</div>';
+            html += `<div class="metric-value">Level: ${extracted.severity_level || 'N/A'}</div>`;
+            html += `<div class="metric-value">Total Score: ${extracted.total_stenosis_score || 0}</div>`;
+            html += `<div class="metric-value">Vessels Involved: ${extracted.vessel_involvement_score || 0}</div>`;
+            html += '</div>';
+            
+            // Treatment
+            html += '<div class="metric-card">';
+            html += '<div class="metric-label">Treatment Decision</div>';
+            html += `<div class="metric-value">Bypass: ${extracted.requires_bypass ? 'Yes' : 'No'}</div>`;
+            html += `<div class="metric-value">Angioplasty: ${extracted.requires_angioplasty ? 'Yes' : 'No'}</div>`;
+            html += '</div>';
+            
+            html += '</div>';
+            
+            document.getElementById('clinicalMetrics').innerHTML = html;
+        }
+        
+        function resetClinicalUpload() {
+            clinicalUploadSection.style.display = 'block';
+            clinicalLoading.style.display = 'none';
+            clinicalOutput.style.display = 'none';
+            clinicalFileInput.value = '';
+        }
+    </script>
 </body>
 </html>
