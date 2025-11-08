@@ -1,9 +1,12 @@
-from flask import Flask, request, jsonify, send_file, send_from_directory
+from flask import Flask, request, jsonify, send_file, send_from_directory, Response
 from ecg_modules import pdf_extract, digitize, analyse, ml_features, database
 from ecg_modules.excel_export import export_to_excel
+from ecg_modules.medical_text_extractor import MedicalReportExtractor
+from ecg_modules.database_clinical import ClinicalDatabase
 import os
 import time
 import io
+import csv
 from dotenv import load_dotenv
 
 # Load environment variables
@@ -16,6 +19,19 @@ os.makedirs("tmp", exist_ok=True)
 
 # Initialize database
 db = database.get_db()
+
+# Initialize clinical database and medical extractor
+clinical_db = None
+medical_extractor = MedicalReportExtractor()
+
+# Initialize clinical DB with connection pool from main DB
+try:
+    if hasattr(db, 'connection_pool'):
+        clinical_db = ClinicalDatabase(db.connection_pool)
+        print("✓ Clinical database initialized")
+except Exception as e:
+    print(f"⚠ Clinical database not initialized: {e}")
+    print("  Clinical features will not be available")
 
 @app.route("/upload", methods=["POST"])
 def upload():
@@ -134,6 +150,105 @@ def get_statistics():
     """Get database statistics"""
     try:
         stats = db.get_statistics()
+        return jsonify({
+            "status": "success",
+            "statistics": stats
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+# ===== CLINICAL DATA API ENDPOINTS =====
+
+@app.route("/api/upload_clinical_report", methods=["POST"])
+def upload_clinical_report():
+    """Upload coronarography PDF and extract clinical data"""
+    if clinical_db is None:
+        return jsonify({
+            "error": "Clinical database not initialized. Please configure PostgreSQL."
+        }), 503
+    
+    try:
+        file = request.files.get("file")
+        if not file:
+            return jsonify({"error": "No file provided"}), 400
+        
+        # Optional patient_id from form, otherwise create new patient
+        patient_id = request.form.get('patient_id')
+        
+        # Extract data from PDF
+        pdf_bytes = file.read()
+        full_text, structured_data = medical_extractor.extract_from_pdf(pdf_bytes)
+        
+        # Save patient if needed
+        if not patient_id:
+            # Try to get patient info from extracted data
+            last_name = structured_data.get('last_name', 'Unknown')
+            first_name = structured_data.get('first_name', 'Unknown')
+            patient_id = clinical_db.save_patient(last_name, first_name)
+        else:
+            patient_id = int(patient_id)
+        
+        # Save clinical data to database
+        record_id = clinical_db.save_clinical_data(patient_id, structured_data, full_text)
+        
+        return jsonify({
+            "status": "success",
+            "patient_id": patient_id,
+            "record_id": record_id,
+            "extracted_data": structured_data
+        })
+        
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/api/export_ml_complete_dataset", methods=["GET"])
+def export_ml_complete_dataset():
+    """Export complete dataset: ECG metrics + Clinical data as CSV"""
+    if clinical_db is None:
+        return jsonify({
+            "error": "Clinical database not initialized"
+        }), 503
+    
+    try:
+        # Get complete dataset with ECG and clinical data
+        records = clinical_db.get_ml_dataset(include_ecg=True)
+        
+        if not records:
+            return jsonify({
+                "error": "No data available for export"
+            }), 404
+        
+        # Create CSV in memory
+        output = io.StringIO()
+        if records:
+            writer = csv.DictWriter(output, fieldnames=records[0].keys())
+            writer.writeheader()
+            writer.writerows(records)
+        
+        # Convert to bytes for download
+        output.seek(0)
+        
+        return Response(
+            output.getvalue(),
+            mimetype='text/csv',
+            headers={
+                "Content-Disposition": f"attachment; filename=ecg_ml_dataset_{int(time.time())}.csv"
+            }
+        )
+        
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/api/clinical_statistics", methods=["GET"])
+def get_clinical_statistics():
+    """Get clinical data statistics"""
+    if clinical_db is None:
+        return jsonify({
+            "error": "Clinical database not initialized"
+        }), 503
+    
+    try:
+        stats = clinical_db.get_clinical_statistics()
         return jsonify({
             "status": "success",
             "statistics": stats
