@@ -199,7 +199,9 @@ def upload_clinical_report():
         })
         
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        # Log the full error for debugging but return sanitized message to user
+        print(f"Error uploading clinical report: {str(e)}")
+        return jsonify({"error": "Failed to process clinical report. Please check the file format."}), 500
 
 @app.route("/api/export_ml_complete_dataset", methods=["GET"])
 def export_ml_complete_dataset():
@@ -237,7 +239,9 @@ def export_ml_complete_dataset():
         )
         
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        # Log the full error for debugging but return sanitized message to user
+        print(f"Error exporting ML dataset: {str(e)}")
+        return jsonify({"error": "Failed to export dataset. Please try again later."}), 500
 
 @app.route("/api/clinical_statistics", methods=["GET"])
 def get_clinical_statistics():
@@ -254,7 +258,9 @@ def get_clinical_statistics():
             "statistics": stats
         })
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        # Log the full error for debugging but return sanitized message to user
+        print(f"Error getting clinical statistics: {str(e)}")
+        return jsonify({"error": "Failed to retrieve statistics. Please try again later."}), 500
 
 if __name__ == "__main__":
     app.run(debug=False, host="0.0.0.0", port=5000, use_reloader=False)

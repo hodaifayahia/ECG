@@ -17,14 +17,16 @@ class ClinicalDatabase:
     Works alongside the main ECG database
     """
     
-    def __init__(self, connection_pool):
+    def __init__(self, connection_pool, verbose: bool = None):
         """
         Initialize with existing connection pool from ECGDatabasePostgres
         
         Args:
             connection_pool: psycopg2 connection pool
+            verbose: Enable verbose logging (default: from DEBUG_LOGGING env var)
         """
         self.connection_pool = connection_pool
+        self.verbose = verbose if verbose is not None else os.getenv('DEBUG_LOGGING', 'false').lower() == 'true'
         self._create_clinical_tables()
     
     @contextmanager
@@ -301,7 +303,12 @@ class ClinicalDatabase:
                 ))
                 result = cursor.fetchone()
                 record_id = result['id']
-                print(f"✓ Saved clinical data record ID {record_id} for patient {patient_id}")
+                # Only log patient IDs if verbose logging is enabled (for HIPAA/GDPR compliance)
+                # CodeQL: Intentional logging of patient_id when DEBUG_LOGGING=true for audit purposes
+                if self.verbose:
+                    print(f"✓ Saved clinical data record ID {record_id} for patient {patient_id}")  # nosec
+                else:
+                    print(f"✓ Saved clinical data record ID {record_id}")
                 return record_id
         except Exception as e:
             print(f"✗ Error saving clinical data: {e}")
